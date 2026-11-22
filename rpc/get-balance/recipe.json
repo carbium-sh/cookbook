@@ -1,0 +1,9 @@
+{
+  "title": "Get a wallet's SOL balance",
+  "summary": "Read one wallet's balance in lamports and SOL with getBalance.",
+  "service": "rpc",
+  "calls": ["getBalance"],
+  "env": ["CARBIUM_KEY"],
+  "languages": ["typescript", "python", "rust", "go"],
+  "expect": { "keys": ["wallet", "lamports", "sol", "slot"] }
+}

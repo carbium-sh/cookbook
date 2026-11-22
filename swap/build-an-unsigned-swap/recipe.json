@@ -1,0 +1,9 @@
+{
+  "title": "Build an unsigned swap",
+  "summary": "Quote 0.01 SOL to USDC and build the swap for your own wallet to sign, with what it costs.",
+  "service": "swap",
+  "calls": ["quote", "swap"],
+  "env": ["CARBIUM_KEY"],
+  "languages": ["typescript", "python", "rust", "go"],
+  "expect": { "keys": ["userPubkey", "inAmount", "minAmountOut", "priorityFeeLamports", "rentLamports", "transaction"], "unsigned": true }
+}

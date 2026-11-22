@@ -1,0 +1,9 @@
+{
+  "title": "Verify a webhook delivery",
+  "summary": "Check a delivery's signature with the SDK, offline, and see one changed byte refused.",
+  "service": "webhooks",
+  "calls": [],
+  "env": [],
+  "languages": ["typescript", "python", "rust", "go"],
+  "expect": { "keys": ["webhookId", "events", "test", "changedByte"] }
+}

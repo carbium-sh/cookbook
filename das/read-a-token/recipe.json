@@ -1,0 +1,9 @@
+{
+  "title": "Read a token",
+  "summary": "Read a mint's name and symbol, its supply and one holder's balance.",
+  "service": "das",
+  "calls": ["getAsset", "getTokenSupply", "getTokenAccounts"],
+  "env": ["CARBIUM_KEY"],
+  "languages": ["typescript", "python", "rust", "go"],
+  "expect": { "keys": ["mint", "name", "symbol", "decimals", "supply", "holder"] }
+}

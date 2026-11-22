@@ -1,0 +1,9 @@
+{
+  "title": "Look up a transaction",
+  "summary": "Take a recent signature, read its status, then the transaction itself.",
+  "service": "rpc",
+  "calls": ["getSignaturesForAddress", "getSignatureStatuses", "getTransaction"],
+  "env": ["CARBIUM_KEY"],
+  "languages": ["typescript", "python", "rust", "go"],
+  "expect": { "keys": ["signature", "slot", "confirmationStatus", "err", "version", "feeLamports", "bytes"] }
+}

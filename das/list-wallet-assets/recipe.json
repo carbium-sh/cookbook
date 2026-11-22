@@ -1,0 +1,9 @@
+{
+  "title": "List a wallet's tokens and NFTs",
+  "summary": "Page through everything one wallet holds with getAssetsByOwner, 10 assets a page.",
+  "service": "das",
+  "calls": ["getAssetsByOwner", "getAssetsByOwner"],
+  "env": ["CARBIUM_KEY"],
+  "languages": ["typescript", "python", "rust", "go"],
+  "expect": { "keys": ["owner", "limit", "pagesRead", "nextPage", "assets"] }
+}

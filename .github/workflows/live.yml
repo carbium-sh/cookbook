@@ -1,0 +1,122 @@
+name: live
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    # Every event, no key: typecheck the examples and run the offline tests against the stand-in door, every language.
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    concurrency:
+      group: build-${{ github.ref }}
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: cookbook
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          package_json_file: cookbook/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.13'
+      - run: rustup toolchain install 1.100.0 --profile minimal && rustup default 1.100.0
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+        working-directory: cookbook
+      - run: pnpm setup:python && echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+        working-directory: cookbook
+      - run: cargo build --workspace --locked
+        working-directory: cookbook
+      # The compiled examples (Rust, Go) reach the stand-in through this name on 127.0.0.1 and its port 443, for this job only.
+      - run: |
+          echo '127.0.0.1 services.carbium.sh' | sudo tee -a /etc/hosts
+          sudo sysctl -w net.ipv4.ip_unprivileged_port_start=443
+      - run: pnpm typecheck && pnpm test
+        working-directory: cookbook
+  live:
+    # Every example once against services.carbium.sh with the capped test key, one language after the other, one
+    # example at a time, 1 s apart. Never for a pull request from a fork: the key stays in the environment live and
+    # reaches the run step only.
+    needs: build
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: live
+    concurrency:
+      group: live
+      cancel-in-progress: false
+      queue: max
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        language: [typescript, python, rust, go]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: cookbook
+          persist-credentials: false
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          package_json_file: cookbook/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        if: matrix.language == 'python'
+        with:
+          python-version: '3.13'
+      - run: rustup toolchain install 1.100.0 --profile minimal && rustup default 1.100.0
+        if: matrix.language == 'rust'
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        if: matrix.language == 'go'
+        with:
+          go-version: '1.27.4'
+          cache: false
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+        working-directory: cookbook
+      - run: pnpm setup:python && echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+        if: matrix.language == 'python'
+        working-directory: cookbook
+      - run: cargo build --workspace --locked
+        if: matrix.language == 'rust'
+        working-directory: cookbook
+      # One line per example: PASS, RATE (a 429 that held after one more try), CAP (a 402 or a suspended key) or FAIL.
+      - run: |
+          [ -n "$CARBIUM_KEY" ] || { echo '::error::CARBIUM_KEY is empty: set it in the environment live'; exit 1; }
+          node scripts/check.mjs "$LANGUAGE" --all
+        working-directory: cookbook
+        env:
+          LANGUAGE: ${{ matrix.language }}
+          CARBIUM_KEY: ${{ secrets.CARBIUM_KEY }}
+  report:
+    # A scheduled run that failed opens one issue, or adds to the one already open. No key.
+    needs: live
+    if: failure() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      issues: write
+    steps:
+      - run: |
+          title='The scheduled live run failed'
+          open=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "in:title \"$title\"" --json number --jq '.[0].number // empty')
+          if [ -n "$open" ]; then gh issue comment "$open" --repo "$GITHUB_REPOSITORY" --body "Failed again: $RUN_URL"
+          else gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$RUN_URL"; fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}

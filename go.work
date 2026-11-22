@@ -1,0 +1,15 @@
+go 1.26.0
+
+// Joins the Go examples for the tests and CI only. Each example builds on its own too.
+use (
+	./das/list-wallet-assets/go
+	./das/read-a-token/go
+	./prices/read-usd-prices/go
+	./quote/quote-a-swap/go
+	./rpc/get-balance/go
+	./rpc/look-up-a-transaction/go
+	./rpc/page-wallet-history/go
+	./swap/build-an-unsigned-swap/go
+	./webhooks/verify-a-delivery/go
+	./websocket/follow-a-wallet/go
+)

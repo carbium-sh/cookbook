@@ -1,0 +1,4 @@
+# Joins the Rust examples for the tests and CI only: one build, one target folder. Each example builds on its own too.
+[workspace]
+resolver = "3"
+members = ["*/*/rust"]
