@@ -1,5 +1,2 @@
 packages:
   - '*/*/typescript'
-
-minimumReleaseAgeExclude:
-  - '@carbium/sdk@0.1.0'
