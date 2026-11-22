@@ -1,7 +1,7 @@
 // A stand-in for the services.carbium.sh door, on 127.0.0.1. Examples reach it through redirect.mjs, so a test needs no
 // network and no real key.
 // - HTTP: with the one key it is given it answers the methods in `answers`: a result, or a function of (params, n), n
-//   counting that method's calls from 1, that returns a result or a Refusal. Any other key, or none, gets the door's 401.
+//   counting that method's calls from 1, that returns a result or a Refusal, or a promise of one. Any other key, or none, gets the door's 401.
 // - WebSocket: with that key it acks every subscribe and unsubscribe; `socket.notification` is pushed with each ack, in
 //   the same write, and `socket.close` ([code, reason]) closes the socket right after it. `socket.closeAfter`
 //   ({ call, close }) closes every open socket once that HTTP call has been answered instead. Any other key, or none,
@@ -28,7 +28,7 @@ export function standIn({ key, answers = {}, socket = {}, tls, port = 0 }) {
   const handle = (req, res) => {
     let text = ''
     req.on('data', (chunk) => (text += chunk))
-    req.on('end', () => {
+    req.on('end', async () => {
       const { id = null, method, params } = JSON.parse(text || '{}')
       calls.push(outside(req) ? 'key outside x-api-key' : method)
       const reply = (status, body) => {
@@ -38,7 +38,7 @@ export function standIn({ key, answers = {}, socket = {}, tls, port = 0 }) {
       if (req.headers['x-api-key'] !== key) return reply(401, { error: { code: -32001, message: 'unknown api key', data: { reason: 'UNKNOWN_KEY' } } })
       if (!(method in answers)) return reply(200, { error: { code: -32601, message: 'Method not found' } })
       counts[method] = (counts[method] ?? 0) + 1
-      const answer = typeof answers[method] === 'function' ? answers[method](params, counts[method]) : answers[method]
+      const answer = await (typeof answers[method] === 'function' ? answers[method](params, counts[method]) : answers[method])
       if (answer instanceof Refusal) return reply(answer.status, { error: answer.error })
       reply(200, { result: answer })
       if (socket.closeAfter?.call === method) setTimeout(() => sockets.clients.forEach((ws) => ws.close(...socket.closeAfter.close)), 100)

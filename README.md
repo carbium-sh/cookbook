@@ -113,6 +113,7 @@ transaction or sends one.
 | [spec/served.json](spec/served.json) | A copy of `served.json` from [carbium-sh/spec](https://github.com/carbium-sh/spec): every call a recipe names is in it. |
 | [scripts/check.mjs](scripts/check.mjs) | Runs a recipe and checks the last line it prints against its `recipe.json`. |
 | [scripts/index.mjs](scripts/index.mjs) | Writes the recipe tables above from the `recipe.json` files. |
+| [benchmark/](benchmark/) | Carbium's published benchmark script: it times 34 reads from your machine with your own key, one call at a time and at most one every 200 ms. |
 
 ## Test it
 
