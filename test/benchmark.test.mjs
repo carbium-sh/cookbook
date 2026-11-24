@@ -1,10 +1,13 @@
 // The benchmark script, offline: it runs as a user runs it, against the stand-in door through redirect.mjs, with a key
 // made at run time. It reads only CARBIUM_KEY, takes no argument, calls one fixed list of served reads one at a time at
 // least 200 ms apart, stops at the first refusal and never prints the key.
-import test from 'node:test'
+import test, { after } from 'node:test'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { randomBytes } from 'node:crypto'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { SERVED, root } from '../scripts/recipes.mjs'
 import { Refusal, standIn } from './standin.mjs'
@@ -18,6 +21,18 @@ const METHODS = ['getSlot', 'getLatestBlockhash', 'getHealth', 'getVersion', 'ge
   'getRecentPerformanceSamples', 'getRecentPrioritizationFees', 'getSlotLeaders', 'getBlockProduction', 'getBlockTime', 'getVoteAccounts',
   'getAccountInfo', 'getTokenSupply', 'getMultipleAccounts', 'getTokenAccountBalance']
 const redirect = `--import=${pathToFileURL(fileURLToPath(new URL('redirect.mjs', import.meta.url)))}`
+// Loaded into the script beside redirect.mjs for the full run: at each fetch call it appends the script's last clock read,
+// the start the script paces its next call from, to the file BENCH_SENT names. The gaps are the script's own, so a slow
+// runner cannot shorten one.
+const hookDir = mkdtempSync(join(tmpdir(), 'benchmark-sent-'))
+const hook = join(hookDir, 'sent.mjs')
+writeFileSync(hook, `import { appendFileSync } from 'node:fs'
+const now = performance.now.bind(performance), fetch = globalThis.fetch
+let read
+performance.now = () => (read = now())
+globalThis.fetch = (...args) => { appendFileSync(process.env.BENCH_SENT, read + '\\n'); return fetch(...args) }
+`)
+after(() => rmSync(hookDir, { recursive: true, force: true }))
 const env = (port, extra) => ({ PATH: process.env.PATH, HOME: process.env.HOME, STANDIN_PORT: String(port), NODE_OPTIONS: redirect, NO_PROXY: '*', no_proxy: '*', ...extra })
 const leaks = (text, k) => text.includes(k) || text.includes(k.slice('c_serv_'.length))
 
@@ -111,15 +126,17 @@ test('a full run: 374 served reads in a fixed order, one at a time at least 200 
   // One answer held for 500 ms: the next call must not leave before it, so the calls never overlap.
   let held
   const slow = (n) => (n === 1 ? new Promise((resolve) => setTimeout(() => { held = performance.now(); resolve(1) }, 500)) : 1)
-  const r = await run({ CARBIUM_KEY: key, GAP_MS: '0', CARBIUM_GAP_MS: '0', WARM: '100', CARBIUM_HOST: 'example.com' }, { refuse: { getHealth: echo, getVersion: slow } })
+  const sentFile = join(hookDir, 'full-run.txt')
+  const r = await run({ CARBIUM_KEY: key, GAP_MS: '0', CARBIUM_GAP_MS: '0', WARM: '100', CARBIUM_HOST: 'example.com', BENCH_SENT: sentFile, NODE_OPTIONS: `${redirect} --import=${pathToFileURL(hook)}` }, { refuse: { getHealth: echo, getVersion: slow } })
   assert.equal(r.code, 0, r.stderr)
   assert.deepEqual(r.calls, METHODS.flatMap((m) => Array(11).fill(m)))
   for (const m of METHODS) assert.ok(SERVED.has(m), `${m} is not a served method`)
-  // Arrival times at the door: one late arrival shortens the next gap, so the rate is read over the whole run, which
-  // spans the 373 starts the script spaces at least 200 ms apart; no two calls arrive together.
-  const gaps = r.times.slice(1).map((t, i) => t - r.times[i])
-  assert.ok(Math.min(...gaps) >= 100, `two calls ${Math.min(...gaps).toFixed(1)} ms apart`)
-  assert.ok(r.times.at(-1) - r.times[0] >= 373 * 200, `374 calls in ${(r.times.at(-1) - r.times[0]).toFixed(0)} ms`)
+  // Each call's start as the script stamped it. The script's timer runs 1 ms past 200 ms after the last start, for a timer
+  // that fires a fraction early, and load only delays a timer: no gap is under 200 ms, and all 373 are checked.
+  const sent = readFileSync(sentFile, 'utf8').trim().split('\n').map(Number)
+  assert.equal(sent.length, 374)
+  const gap = Math.min(...sent.slice(1).map((t, i) => t - sent[i]))
+  assert.ok(gap >= 200, `two calls started ${gap.toFixed(1)} ms apart`)
   const first = upTo('getVersion', 1).length
   assert.ok(r.times[first] >= held, 'a call left before the answer to the one before it')
   const lines = r.stdout.trimEnd().split('\n')
