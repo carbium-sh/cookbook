@@ -1,7 +1,8 @@
-// Every example, offline. With no key it calls nothing, exits 2 and says which key to set. With a made-up key the
-// stand-in door answers 401: the example exits 1, prints that status, and the key shows nowhere in what it printed.
-// With the stand-in's key every call is answered, every page full: the example passes its expect and makes exactly the
-// calls its recipe.json lists, in order. A recipe that reads no key runs as it is and must pass its own expect.
+// Every example, offline. With no key, one that needs CARBIUM_KEY calls nothing, exits 2 and says which key to set; one
+// that needs none sends no key header, makes exactly the calls its recipe.json lists (the public ones, which the stand-in
+// door answers with no key, as the service does) and passes its own expect. With a made-up key the door answers 401: the
+// example exits 1, prints that status, and the key shows nowhere in what it printed. With the stand-in's key every call
+// is answered, every page full: the example passes its expect and makes exactly the calls its recipe.json lists, in order.
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
@@ -99,32 +100,34 @@ test('the canary scan catches the canary in a planted line', () => {
 
 for (const r of listRecipes()) {
   for (const language of r.languages.filter(chosen)) {
+    // The door's key is one no example sends, so a call with any key header, an empty one included, gets its 401.
     if (!r.recipe.env.includes('CARBIUM_KEY')) {
-      test(`${r.id} (${language}) needs no key and passes its expect`, async () => {
-        const door = await openDoor(language, { key: 'none' })
+      test(`${r.id} (${language}) with no key sends none, makes exactly its calls and passes its expect`, async () => {
+        const door = await openDoor(language, { key: 'none', answers })
         try {
           const result = await run(r.dir, language, { env: door.env() })
           assert.deepEqual(verdict(result, r.recipe.expect), { result: 'PASS', problems: [] })
+          assert.deepEqual(door.calls, r.recipe.calls)
+        } finally {
+          door.close()
+        }
+      })
+    } else {
+      test(`${r.id} (${language}) with no key calls nothing and exits 2`, async () => {
+        const door = await openDoor(language, { key: 'none' })
+        try {
+          const result = await run(r.dir, language, { env: door.env() })
+          assert.equal(result.code, 2)
+          assert.equal(result.stderr.trim(), 'set CARBIUM_KEY to your c_serv_ key')
+          assert.equal(result.stdout, '')
           assert.deepEqual(door.calls, [])
         } finally {
           door.close()
         }
       })
-      continue
     }
-
-    test(`${r.id} (${language}) with no key calls nothing and exits 2`, async () => {
-      const door = await openDoor(language, { key: 'none' })
-      try {
-        const result = await run(r.dir, language, { env: door.env() })
-        assert.equal(result.code, 2)
-        assert.equal(result.stderr.trim(), 'set CARBIUM_KEY to your c_serv_ key')
-        assert.equal(result.stdout, '')
-        assert.deepEqual(door.calls, [])
-      } finally {
-        door.close()
-      }
-    })
+    // A recipe that makes no call has no key to send or to have refused.
+    if (r.recipe.calls.length === 0) continue
 
     test(`${r.id} (${language}) with a refused key exits 1 with the 401 and never prints the key`, async () => {
       const door = await openDoor(language, { key: 'another key' })

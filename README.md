@@ -57,7 +57,9 @@ written as one short file per language, TypeScript, Python, Rust and Go, that yo
 ## Run a recipe
 
 Each example that calls a service reads your service key (`c_serv_...`, from the dashboard at carbium.sh) from
-`CARBIUM_KEY`. The SDK sends it in the `x-api-key` header, never in a URL. With Node 24:
+`CARBIUM_KEY`. The SDK sends it in the `x-api-key` header, never in a URL. Quote a swap, Build an unsigned swap and Read
+USD prices also run with `CARBIUM_KEY` unset: they then call services.carbium.sh with no key, which serves `quote`,
+`swap` and `prices` at up to 30 calls a minute per IP address. With Node 24:
 
 ```sh
 cd rpc/get-balance/typescript
@@ -94,8 +96,8 @@ go build -o example .
 Go builds first because `go run .` exits 1 whatever the example's exit code was.
 
 An example prints one line of JSON and exits 0. When the service refuses a call, it prints the HTTP status, the error
-code and the message as one line of JSON on stderr and exits 1. Without the key it needs, it says which one to set and
-exits 2.
+code and the message as one line of JSON on stderr and exits 1. An example that needs a key and has none says which one
+to set and exits 2.
 
 The swap example builds an unsigned transaction for your own wallet to sign. No example holds a private key, signs a
 transaction or sends one.
@@ -104,7 +106,7 @@ transaction or sends one.
 
 | Path | What it holds |
 |---|---|
-| `<service>/<recipe>/recipe.json` | The recipe: its title and summary, the calls it makes, the keys it reads, its languages and the keys its output must hold. |
+| `<service>/<recipe>/recipe.json` | The recipe: its title and summary, the calls it makes, the keys it needs, its languages and the keys its output must hold. |
 | `<service>/<recipe>/typescript/` | `main.ts` and its `package.json`. |
 | `<service>/<recipe>/python/` | `main.py`. |
 | `<service>/<recipe>/rust/` | `Cargo.toml` and `src/main.rs`. |
@@ -138,7 +140,7 @@ folders, and that the tables above are what `scripts/index.mjs` writes. Every ex
 the service on 127.0.0.1, reached through `test/redirect.mjs` for Node, `test/python/sitecustomize.py` for Python, and for Rust and Go a hosts
 entry for `services.carbium.sh` on 127.0.0.1 with the stand-in on port 443 behind a certificate made for the run
 (`test/tls.mjs`, trusted through `SSL_CERT_FILE`), so the examples stay as a reader copies them. `COOKBOOK_LANGUAGES`
-picks the languages to run on a machine without every toolchain: with no key it must call nothing and exit 2; with a made-up key it must exit 1 with the 401, send
+picks the languages to run on a machine without every toolchain: with no key, an example that needs `CARBIUM_KEY` must call nothing and exit 2, and one that needs none must send no key and make exactly its calls, which `recipe.json` may list only from those the service answers with no key; with a made-up key it must exit 1 with the 401, send
 the key only in `x-api-key`, and print it nowhere; with every call answered it must make exactly the calls its
 `recipe.json` lists. A recipe that sends a transaction is refused. The checker's own tests run the examples against the stand-in too:
 a missing output key, a signed slot in the swap transaction and a fee payer other than `userPubkey` must each fail, and
@@ -146,7 +148,8 @@ the swap transaction is read to its last byte.
 
 `node scripts/check.mjs --all` runs every recipe once against `services.carbium.sh` with the key in `CARBIUM_KEY`, one
 at a time, 1 second apart, and sorts each result into PASS, RATE (429), CAP (402: nothing runs after it), FAIL or SKIP
-(not run). It exits 0 only when every recipe passed.
+(not run). It exits 0 only when every recipe passed. With `CARBIUM_KEY` unset, the recipes that need no key run without
+one and the others are SKIP.
 
 To add a recipe, add its folder with `recipe.json`, `README.md` and one folder per language, then run
 `node scripts/index.mjs`.

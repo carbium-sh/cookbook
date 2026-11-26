@@ -7,8 +7,9 @@ amounts, what the wallet would pay (the 5,000-lamport signature fee, the priorit
 it creates) and the transaction, in base64. Put your own public key in `userPubkey`. The quote is valid for 30 seconds
 and the transaction until block height `lastValidBlockHeight`.
 
-Set `CARBIUM_KEY` to your service key (`c_serv_...`, from the dashboard at carbium.sh). The key needs the quote scope
-and the account the quote module. Then run it with Node 24:
+It needs no key. With `CARBIUM_KEY` unset it calls services.carbium.sh without one, which serves `quote`, `swap` and
+`prices` at up to 30 calls a minute per IP address. For more, set `CARBIUM_KEY` to your service key (`c_serv_...`,
+from the dashboard at carbium.sh): it needs the quote scope, and its account the quote module. Run it with Node 24:
 
 ```sh
 cd typescript

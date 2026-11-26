@@ -24,6 +24,17 @@ test('a call that served.json does not list fails', () => {
   assert.deepEqual(planted(balance, (r) => (r.recipe.calls = ['getbalance'])), ['rpc/get-balance: getbalance is not served'])
 })
 
+test('a recipe that does not need CARBIUM_KEY makes only the calls services.carbium.sh answers with no key', () => {
+  assert.deepEqual(planted(balance, (r) => (r.recipe.env = [])), ['rpc/get-balance: getBalance needs a key, and the recipe does not need CARBIUM_KEY'])
+  assert.deepEqual(planted(swap, (r) => r.recipe.calls.push('getBalance')), ['swap/build-an-unsigned-swap: getBalance needs a key, and the recipe does not need CARBIUM_KEY'])
+  assert.deepEqual(planted(swap, (r) => r.recipe.env.push('CARBIUM_KEY') && r.recipe.calls.push('getBalance')), [])
+  // Calls to other services are not the door's.
+  const dca = { ...structuredClone(swap), id: 'dca/quote-a-position' }
+  dca.recipe.service = 'dca'
+  dca.recipe.calls = ['GET /quote']
+  assert.deepEqual(recipeProblems(dca), [])
+})
+
 test('a recipe never sends a transaction', () => {
   assert.deepEqual(planted(swap, (r) => r.recipe.calls.push('sendTransaction')), ['swap/build-an-unsigned-swap: sendTransaction sends a transaction, and no recipe sends one'])
   const dca = { ...structuredClone(balance), id: 'dca/open-a-position' }

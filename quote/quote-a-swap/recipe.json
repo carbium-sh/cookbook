@@ -3,7 +3,7 @@
   "summary": "Quote 0.01 SOL to USDC: the amount out, the floor, the route and the fee.",
   "service": "quote",
   "calls": ["quote"],
-  "env": ["CARBIUM_KEY"],
+  "env": [],
   "languages": ["typescript", "python", "rust", "go"],
   "expect": { "keys": ["inputMint", "outputMint", "inAmount", "outAmount", "minAmountOut", "route", "quoteId"] }
 }

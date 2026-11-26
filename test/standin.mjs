@@ -1,7 +1,9 @@
 // A stand-in for the services.carbium.sh door, on 127.0.0.1. Examples reach it through redirect.mjs, so a test needs no
 // network and no real key.
 // - HTTP: with the one key it is given it answers the methods in `answers`: a result, or a function of (params, n), n
-//   counting that method's calls from 1, that returns a result or a Refusal, or a promise of one. Any other key, or none, gets the door's 401.
+//   counting that method's calls from 1, that returns a result or a Refusal, or a promise of one. With no x-api-key header it
+//   answers the public methods the same way, as the door does; any other key gets the door's 401, and no key on any other
+//   method its 401 KEY_REQUIRED.
 // - WebSocket: with that key it acks every subscribe and unsubscribe; `socket.notification` is pushed with each ack, in
 //   the same write, and `socket.close` ([code, reason]) closes the socket right after it. `socket.closeAfter`
 //   ({ call, close }) closes every open socket once that HTTP call has been answered instead. Any other key, or none,
@@ -13,6 +15,7 @@
 import { createServer } from 'node:http'
 import { createServer as createSecureServer } from 'node:https'
 import { WebSocketServer } from 'ws'
+import { PUBLIC } from '../scripts/recipes.mjs'
 
 export class Refusal {
   constructor(status, code, message, data) {
@@ -35,7 +38,9 @@ export function standIn({ key, answers = {}, socket = {}, tls, port = 0 }) {
         res.writeHead(status, { 'content-type': 'application/json' })
         res.end(JSON.stringify({ jsonrpc: '2.0', id, ...body }))
       }
-      if (req.headers['x-api-key'] !== key) return reply(401, { error: { code: -32001, message: 'unknown api key', data: { reason: 'UNKNOWN_KEY' } } })
+      const sent = req.headers['x-api-key']
+      if (sent === undefined && !PUBLIC.has(method)) return reply(401, { error: { code: -32001, message: 'this method needs an api key', data: { reason: 'KEY_REQUIRED' } } })
+      if (sent !== undefined && sent !== key) return reply(401, { error: { code: -32001, message: 'unknown api key', data: { reason: 'UNKNOWN_KEY' } } })
       if (!(method in answers)) return reply(200, { error: { code: -32601, message: 'Method not found' } })
       counts[method] = (counts[method] ?? 0) + 1
       const answer = await (typeof answers[method] === 'function' ? answers[method](params, counts[method]) : answers[method])

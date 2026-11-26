@@ -1,12 +1,6 @@
 // Read the USD price of a few mints with one prices call. The table behind it is rebuilt about every 30 seconds.
 import { createCarbium, isCarbiumError } from '@carbium/sdk'
 
-const apiKey = process.env.CARBIUM_KEY
-if (!apiKey) {
-  console.error('set CARBIUM_KEY to your c_serv_ key')
-  process.exit(2)
-}
-
 const mints = [
   'So11111111111111111111111111111111111111112', // SOL
   'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v', // USDC
@@ -14,7 +8,8 @@ const mints = [
 ]
 
 try {
-  const carbium = createCarbium({ apiKey })
+  // CARBIUM_KEY is optional here: unset, the calls go out with no key, up to 30 a minute per IP address.
+  const carbium = createCarbium({ apiKey: process.env.CARBIUM_KEY })
   const table = await carbium.quote.prices({ mints })
   // Each row is [mint, priceUsd or null, tvlUsd, quoteMint]. A mint the table does not carry is absent.
   const prices = Object.fromEntries(table.rows.map(([mint, priceUsd]) => [mint, priceUsd]))

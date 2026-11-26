@@ -10,7 +10,7 @@
     "summary": { "description": "One line for the index.", "type": "string", "minLength": 1, "maxLength": 120 },
     "service": { "enum": ["rpc", "das", "websocket", "stream", "quote", "swap", "prices", "health", "webhooks", "account", "dca", "tokens"] },
     "calls": { "description": "Every call the example makes, in order, repeats included, when every page it reads is full. Names as spec/served.json lists them; a subscription's unsubscribe too.", "type": "array", "items": { "type": "string" } },
-    "env": { "description": "The key variables the recipe reads.", "type": "array", "items": { "enum": ["CARBIUM_KEY", "CARBIUM_ACCOUNT_KEY", "CARBIUM_WEBHOOK_SECRET"] }, "uniqueItems": true },
+    "env": { "description": "The key variables the recipe needs. Without CARBIUM_KEY, its calls to services.carbium.sh are only the ones it answers with no key.", "type": "array", "items": { "enum": ["CARBIUM_KEY", "CARBIUM_ACCOUNT_KEY", "CARBIUM_WEBHOOK_SECRET"] }, "uniqueItems": true },
     "languages": { "description": "The language folders present.", "type": "array", "minItems": 1, "items": { "enum": ["typescript", "python", "rust", "go"] }, "uniqueItems": true },
     "expect": {
       "type": "object",

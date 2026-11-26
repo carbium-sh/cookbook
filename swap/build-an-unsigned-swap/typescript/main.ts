@@ -3,19 +3,14 @@
 // Quotes 0.01 SOL to USDC, builds the swap for one wallet's public key, and prints what that wallet would pay.
 import { createCarbium, isCarbiumError } from '@carbium/sdk'
 
-const apiKey = process.env.CARBIUM_KEY
-if (!apiKey) {
-  console.error('set CARBIUM_KEY to your c_serv_ key')
-  process.exit(2)
-}
-
 const SOL = 'So11111111111111111111111111111111111111112'
 const USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
 // The wallet that would sign and pay the fees. Put your own public key here.
 const userPubkey = '5tzFkiKscXHK5ZXCGbXZxdw7gTjjD1mBwuoFbhUvuAi9'
 
 try {
-  const carbium = createCarbium({ apiKey })
+  // CARBIUM_KEY is optional here: unset, the calls go out with no key, up to 30 a minute per IP address.
+  const carbium = createCarbium({ apiKey: process.env.CARBIUM_KEY })
   const quote = await carbium.quote.quote({ src_mint: SOL, dst_mint: USDC, amount_in: '10000000', slippage_bps: 50 })
   const swap = await carbium.quote.swap({ quote_id: quote.quoteId, user_pubkey: userPubkey })
   console.log(JSON.stringify({

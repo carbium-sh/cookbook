@@ -156,16 +156,19 @@ test('the run loop: a cap stops every call after it, and each recipe not run get
   }
 })
 
-test('the run loop: with no key nothing reaches the service and the run is red', examples, async () => {
-  const door = await standIn({ key })
+test('the run loop: with no key only the keyless recipes run, on public calls, the rest are SKIP and the run is red', examples, async () => {
+  const door = await standIn({ key, answers: { prices, quote, swap: swapAnswer((payer) => transaction(message({ payer }))) } })
   try {
-    const out = await cli(['rpc/get-balance', 'webhooks/verify-a-delivery'], env(door.port, {}))
-    assert.deepEqual(results(out.lines), [['rpc/get-balance', 'SKIP', 'not run: CARBIUM_KEY is not set'], ['webhooks/verify-a-delivery', 'PASS', null]])
-    assert.deepEqual(door.calls, [])
+    const out = await cli(['prices/read-usd-prices', 'rpc/get-balance', 'webhooks/verify-a-delivery'], env(door.port, {}))
+    assert.deepEqual(results(out.lines), [['prices/read-usd-prices', 'PASS', null], ['rpc/get-balance', 'SKIP', 'not run: CARBIUM_KEY is not set'], ['webhooks/verify-a-delivery', 'PASS', null]])
+    assert.deepEqual(door.calls, ['prices'])
     assert.equal(out.code, 1)
     const all = await cli(['--all'], env(door.port, {}))
     assert.equal(all.code, 1)
-    assert.equal(all.lines.filter((l) => l.result === 'SKIP').length, listRecipes().filter((r) => r.recipe.env.includes('CARBIUM_KEY')).length)
+    const ids = (result) => all.lines.filter((l) => l.result === result).map((l) => l.recipe)
+    assert.deepEqual(ids('SKIP'), listRecipes().filter((r) => r.recipe.env.includes('CARBIUM_KEY')).map((r) => r.id))
+    assert.deepEqual(ids('PASS'), ['prices/read-usd-prices', 'quote/quote-a-swap', 'swap/build-an-unsigned-swap', 'webhooks/verify-a-delivery'])
+    assert.deepEqual(door.calls, ['prices', 'prices', 'quote', 'quote', 'swap'])
   } finally {
     door.close()
   }

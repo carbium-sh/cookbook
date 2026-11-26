@@ -1,17 +1,12 @@
 // Quote a swap of 0.01 SOL to USDC with one quote call. Amounts are strings in base units: lamports and USDC atoms.
 import { createCarbium, isCarbiumError } from '@carbium/sdk'
 
-const apiKey = process.env.CARBIUM_KEY
-if (!apiKey) {
-  console.error('set CARBIUM_KEY to your c_serv_ key')
-  process.exit(2)
-}
-
 const SOL = 'So11111111111111111111111111111111111111112'
 const USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
 
 try {
-  const carbium = createCarbium({ apiKey })
+  // CARBIUM_KEY is optional here: unset, the calls go out with no key, up to 30 a minute per IP address.
+  const carbium = createCarbium({ apiKey: process.env.CARBIUM_KEY })
   const quote = await carbium.quote.quote({ src_mint: SOL, dst_mint: USDC, amount_in: '10000000', slippage_bps: 50 })
   console.log(JSON.stringify({
     inputMint: quote.inputMint,

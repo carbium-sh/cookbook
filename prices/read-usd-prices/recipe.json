@@ -3,7 +3,7 @@
   "summary": "Read the USD price of a few mints with one prices call.",
   "service": "prices",
   "calls": ["prices"],
-  "env": ["CARBIUM_KEY"],
+  "env": [],
   "languages": ["typescript", "python", "rust", "go"],
   "expect": { "keys": ["solUsd", "builtUnix", "stale", "prices"] }
 }

@@ -19,8 +19,11 @@ export const RUNNERS = {
 const json = (path) => JSON.parse(readFileSync(path, 'utf8'))
 const validate = new Ajv2020({ allErrors: true }).compile(json(join(root, 'recipe.schema.json')))
 const served = json(join(root, 'spec/served.json'))
-// Each served subscription comes with its unsubscribe.
-export const SERVED = new Set([...served.rpc, ...served.ws, ...served.ws.map((s) => s.replace(/Subscribe$/, 'Unsubscribe')), ...served.stream.filters, ...served.stream.unary, ...served.dca, ...served.tokens])
+// The calls services.carbium.sh answers; each served subscription comes with its unsubscribe.
+const DOOR = new Set([...served.rpc, ...served.ws, ...served.ws.map((s) => s.replace(/Subscribe$/, 'Unsubscribe')), ...served.stream.filters, ...served.stream.unary])
+export const SERVED = new Set([...DOOR, ...served.dca, ...served.tokens])
+// The door's calls it answers with no key (carbium.sh/skill.md, Endpoints and auth), 30 a minute per IP address in all.
+export const PUBLIC = new Set(['quote', 'swap', 'prices', 'health', 'getHealth', 'getVersion', 'getSlot', 'getBlockHeight', 'getEpochInfo', 'getLatestBlockhash', 'isBlockhashValid', 'getGenesisHash'])
 // A recipe builds at most an unsigned transaction: these calls send one.
 const SENDS = new Set(['sendTransaction', 'POST /send'])
 
@@ -38,7 +41,7 @@ export function listRecipes(base = root) {
   return out.sort((a, b) => a.id.localeCompare(b.id))
 }
 
-/** The problems of one recipe: its schema, its folder, its calls against served.json and its languages against its folders. */
+/** The problems of one recipe: its schema, its folder, its calls against served.json (only public ones without CARBIUM_KEY) and its languages against its folders. */
 export function recipeProblems({ id, dir, recipe, languages }) {
   const out = validate(recipe) ? [] : validate.errors.map((e) => `${id}: ${e.instancePath || 'recipe.json'} ${e.message}${e.params.additionalProperty ? `: ${e.params.additionalProperty}` : ''}`)
   const service = id.split('/')[0]
@@ -46,6 +49,7 @@ export function recipeProblems({ id, dir, recipe, languages }) {
   for (const call of new Set(recipe.calls ?? [])) {
     if (!SERVED.has(call)) out.push(`${id}: ${call} is not served`)
     else if (SENDS.has(call)) out.push(`${id}: ${call} sends a transaction, and no recipe sends one`)
+    else if (Array.isArray(recipe.env) && !recipe.env.includes('CARBIUM_KEY') && DOOR.has(call) && !PUBLIC.has(call)) out.push(`${id}: ${call} needs a key, and the recipe does not need CARBIUM_KEY`)
   }
   const want = [...(recipe.languages ?? [])].sort().join(', ')
   const have = [...languages].sort().join(', ')

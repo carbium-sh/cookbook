@@ -22,12 +22,8 @@ const (
 )
 
 func main() {
-	apiKey := os.Getenv("CARBIUM_KEY")
-	if apiKey == "" {
-		fmt.Fprintln(os.Stderr, "set CARBIUM_KEY to your c_serv_ key")
-		os.Exit(2)
-	}
-	c, err := carbium.NewClient(apiKey, nil)
+	// CARBIUM_KEY is optional here: unset, the calls go out with no key, up to 30 a minute per IP address.
+	c, err := carbium.NewClient(os.Getenv("CARBIUM_KEY"), nil)
 	if err != nil {
 		fail(err)
 	}

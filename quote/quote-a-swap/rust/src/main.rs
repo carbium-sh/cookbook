@@ -7,14 +7,8 @@ const USDC: &str = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 
 #[tokio::main]
 async fn main() {
-    let api_key = match std::env::var("CARBIUM_KEY") {
-        Ok(key) if !key.is_empty() => key,
-        _ => {
-            eprintln!("set CARBIUM_KEY to your c_serv_ key");
-            std::process::exit(2);
-        }
-    };
-    let client = Carbium::new(ClientOptions { api_key: Some(api_key), ..Default::default() }).unwrap_or_else(|e| fail(e));
+    // CARBIUM_KEY is optional here: unset, the calls go out with no key, up to 30 a minute per IP address.
+    let client = Carbium::new(ClientOptions { api_key: std::env::var("CARBIUM_KEY").ok(), ..Default::default() }).unwrap_or_else(|e| fail(e));
     let params = QuoteParams::new(SOL, USDC, QuoteParamsAmountIn::Text("10000000".into()), 50);
     let quote = client.quote(&params).await.unwrap_or_else(|e| fail(e));
     let route: Vec<String> = quote.route_plan.iter().map(|leg| format!("{} {}%", leg.swap_info.label, leg.percent)).collect();
