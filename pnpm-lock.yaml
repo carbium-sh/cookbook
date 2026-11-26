@@ -28,69 +28,69 @@ importers:
     dependencies:
       '@carbium/sdk':
         specifier: ^0.1.0
-        version: 0.1.0(ws@8.23.0)
+        version: 0.1.2(ws@8.23.0)
 
   das/read-a-token/typescript:
     dependencies:
       '@carbium/sdk':
         specifier: ^0.1.0
-        version: 0.1.0(ws@8.23.0)
+        version: 0.1.2(ws@8.23.0)
 
   prices/read-usd-prices/typescript:
     dependencies:
       '@carbium/sdk':
         specifier: ^0.1.0
-        version: 0.1.0(ws@8.23.0)
+        version: 0.1.2(ws@8.23.0)
 
   quote/quote-a-swap/typescript:
     dependencies:
       '@carbium/sdk':
         specifier: ^0.1.0
-        version: 0.1.0(ws@8.23.0)
+        version: 0.1.2(ws@8.23.0)
 
   rpc/get-balance/typescript:
     dependencies:
       '@carbium/sdk':
         specifier: ^0.1.0
-        version: 0.1.0(ws@8.23.0)
+        version: 0.1.2(ws@8.23.0)
 
   rpc/look-up-a-transaction/typescript:
     dependencies:
       '@carbium/sdk':
         specifier: ^0.1.0
-        version: 0.1.0(ws@8.23.0)
+        version: 0.1.2(ws@8.23.0)
 
   rpc/page-wallet-history/typescript:
     dependencies:
       '@carbium/sdk':
         specifier: ^0.1.0
-        version: 0.1.0(ws@8.23.0)
+        version: 0.1.2(ws@8.23.0)
 
   swap/build-an-unsigned-swap/typescript:
     dependencies:
       '@carbium/sdk':
         specifier: ^0.1.0
-        version: 0.1.0(ws@8.23.0)
+        version: 0.1.2(ws@8.23.0)
 
   webhooks/verify-a-delivery/typescript:
     dependencies:
       '@carbium/sdk':
         specifier: ^0.1.0
-        version: 0.1.0(ws@8.23.0)
+        version: 0.1.2(ws@8.23.0)
 
   websocket/follow-a-wallet/typescript:
     dependencies:
       '@carbium/sdk':
         specifier: ^0.1.0
-        version: 0.1.0(ws@8.23.0)
+        version: 0.1.2(ws@8.23.0)
       ws:
         specifier: ^8.18.0
         version: 8.23.0
 
 packages:
 
-  '@carbium/sdk@0.1.0':
-    resolution: {integrity: sha512-RVHItsO6vo2dg00r8g+HAAc2ZuP5Ei4Hhgzx50CWi/TZlqK92xMknHN7viwHeplvPN10z98Gm6eTZQQfhLx/iw==}
+  '@carbium/sdk@0.1.2':
+    resolution: {integrity: sha512-1Apki2kAp1rMHiDTT/y+9BOWlUuieFX4CLl0+lH5PymmSKgHD/AZdpBX4nvARgPCbGo6TFG4XK+RzqBx5JBXpg==}
     engines: {node: '>=22.12'}
     peerDependencies:
       '@triton-one/yellowstone-grpc': '>=10.0.0 <11'
@@ -265,7 +265,7 @@ packages:
 
 snapshots:
 
-  '@carbium/sdk@0.1.0(ws@8.23.0)':
+  '@carbium/sdk@0.1.2(ws@8.23.0)':
     optionalDependencies:
       ws: 8.23.0
 
